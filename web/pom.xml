@@ -12,6 +12,7 @@
     <packaging>war</packaging>
 
     <properties>
+        <appengine.app.version>1</appengine.app.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
@@ -101,6 +102,7 @@
     <build>
      <finalName>discogs</finalName>
      <plugins>
+
          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
@@ -111,6 +113,7 @@
                   <target>8</target>
              </configuration>
          </plugin>
+
          <plugin>
              <groupId>org.codehaus.mojo</groupId>
              <artifactId>appassembler-maven-plugin</artifactId>
@@ -132,6 +135,23 @@
                      </goals>
                  </execution>
              </executions>
+         </plugin>
+
+         <plugin>
+             <groupId>com.google.appengine</groupId>
+             <artifactId>appengine-maven-plugin</artifactId>
+             <version>1.9.17</version>
+             <configuration>
+                 <enableJarClasses>false</enableJarClasses>
+                 <!-- Comment in the below snippet to bind to all IPs instead of just localhost -->
+                 <!-- address>0.0.0.0</address>
+                 <port>8080</port -->
+                 <!-- Comment in the below snippet to enable local debugging with a remove debugger
+                      like those included with Eclipse or IntelliJ -->
+                 <!-- jvmFlags>
+                   <jvmFlag>-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n</jvmFlag>
+                 </jvmFlags -->
+             </configuration>
          </plugin>
      </plugins>
    </build>
