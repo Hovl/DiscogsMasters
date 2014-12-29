@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://java.sun.com/xml/ns/javaee"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+		  http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+           version="3.0">
+
+<!--    <error-page>
+        <error-code>404</error-code>
+        <location>/v0/error.html</location>
+    </error-page>
+
+    <error-page>
+        <error-code>500</error-code>
+        <location>/v0/error.html</location>
+    </error-page>-->
+
+
+    <servlet>
+        <servlet-name>test</servlet-name>
+        <servlet-class>ebs.discogs.web.TestServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>test</servlet-name>
+        <url-pattern>/test</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ping</servlet-name>
+        <servlet-class>ebs.discogs.web.PingServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ping</servlet-name>
+        <url-pattern>/ping</url-pattern>
+    </servlet-mapping>
+</web-app>

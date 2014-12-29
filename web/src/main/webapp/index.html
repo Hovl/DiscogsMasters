@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Discogs stats graph</title>
+    <script type="text/javascript" src="//www.google.com/jsapi"></script>
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript">
+        google.load('visualization', '1', {packages: ['corechart']});
+    </script>
+    <script type="text/javascript">
+        function drawVisualization() {
+
+            $.getJSON("./data/masters.json", function (json) {
+                var data = google.visualization.arrayToDataTable(json);
+
+                var ac = new google.visualization.AreaChart(document.getElementById('visualization'));
+
+                ac.draw(data, {
+                    title: 'Yearly Releases by Genre',
+                    isStacked: true,
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                    vAxis: {title: "Releases"},
+                    hAxis: {title: "Year"}
+                });
+            });
+        }
+
+        google.setOnLoadCallback(drawVisualization);
+    </script>
+</head>
+<body style="font-family: Arial,serif;border: 0 none;width: 100%; height: 100%;">
+<div id="visualization" style="width: 100%; height: 100%;"></div>
+</body>
+</html>
