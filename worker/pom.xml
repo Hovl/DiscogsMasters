@@ -4,7 +4,7 @@
 
     <parent>
         <groupId>ebs.discogs</groupId>
-        <artifactId>parent</artifactId>
+        <artifactId>discogs-masters</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
