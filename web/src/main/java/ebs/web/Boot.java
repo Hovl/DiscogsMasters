@@ -16,6 +16,10 @@ public class Boot {
 
 	public static void main(String[] args) throws Exception {
 
+		//Start rabbitmq stack
+
+
+		//Start tomcat server
 		String webappDirLocation = "src/main/webapp/";
 		Tomcat tomcat = new Tomcat();
 
