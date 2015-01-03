@@ -37,7 +37,6 @@ public class LocalXMLWorker {
 		JsonElement result = releasesWorker.transformResultsToJsonElement();
 
 		logger.info("xml is parsed:\n" + result.toString());
-		System.out.println(result.toString());
 
 		CharSink charSink = Files.asCharSink(new File(MASTERS_JSON), Charsets.UTF_8);
 		charSink.write(result.toString());
