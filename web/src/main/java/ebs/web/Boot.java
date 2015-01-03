@@ -20,7 +20,7 @@ public class Boot {
 
 
 		//Start tomcat server
-		String webappDirLocation = "src/main/webapp/";
+		String webappDirLocation = "web/src/main/webapp/";
 		Tomcat tomcat = new Tomcat();
 
 		//The port that we should run on can be set into an environment variable
