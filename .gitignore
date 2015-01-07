@@ -8,3 +8,4 @@ target
 common/target
 web/target
 worker/target
+.vagrant
