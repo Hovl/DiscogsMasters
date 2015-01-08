@@ -3,6 +3,8 @@ VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  config.vm.synced_folder ".", "/usr/local/discogs"
+
   config.vm.define "discogs-web" do |a|
     a.vm.provider "docker" do |d|
       d.build_dir = "."
@@ -10,24 +12,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       d.ports = ["8080:8080"]
       d.name = "discogs-web"
       d.remains_running = true
-      d.cmd = ["java", "-cp", "web/target/discogs/WEB-INF/classes:web/target/discogs/WEB-INF/lib/*", "ebs.web.Boot"]
-      d.volumes = ["/usr/local/src"]
-      d.has_ssh = true
+      d.cmd = ["java", "-cp",
+      "web/target/discogs/WEB-INF/classes:web/target/discogs/WEB-INF/lib/*",
+      "ebs.web.Boot"]
+      d.volumes = ["/usr/local/discogs"]
       d.vagrant_vagrantfile = "./Vagrantfile.proxy"
     end
   end
-
-  config.vm.synced_folder ".", "/usr/local/discogs"
-
-#  config.vm.define "discogs-worker" do |a|
-#    a.vm.provider "docker" do |d|
-#      d.build_dir = "."
-#      d.build_args = ["-t=discogs-worker"]
-#      d.name = "discogs-worker"
-#      d.remains_running = true
-#      d.cmd = ["sh", "worker/target/bin/localXMLWorker"]
-#      d.volumes = ["/usr/local/src"]
-#    end
-#  end
 
 end
