@@ -1,2 +1,1 @@
-web: java $JAVA_OPTS -jar web/target/dependency/webapp-runner.jar --port $PORT web/target/*.war
-worker: sh worker/target/bin/worker
+web: java -cp web/target/discogs/WEB-INF/classes:web/target/discogs/WEB-INF/lib/* ebs.web.Boot
