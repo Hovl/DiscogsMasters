@@ -42,6 +42,10 @@
                             <mainClass>ebs.discogs.workers.LocalXMLWorker</mainClass>
                             <name>localXMLWorker</name>
                         </program>
+                        <program>
+                            <mainClass>ebs.discogs.workers.LocalDataMastersWorker</mainClass>
+                            <name>localDataMastersWorker</name>
+                        </program>
                     </programs>
                 </configuration>
                 <executions>
