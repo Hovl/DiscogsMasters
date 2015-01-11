@@ -1,7 +1,6 @@
 package ebs.discogs.web;
 
 import com.google.gson.JsonElement;
-import ebs.discogs.data.ReleasesWorker;
 import ebs.discogs.xml.MastersParser;
 import ebs.web.BasicJSONServlet;
 import org.xml.sax.SAXException;
@@ -29,15 +28,17 @@ public class TestServlet extends BasicJSONServlet {
 			return;
 		}
 
-		ReleasesWorker releasesWorker = new ReleasesWorker();
-
+		JsonElement result = null;
 		try {
-			new MastersParser(url, releasesWorker).parseGZipFile();
+			result = new MastersParser(url).parseGZipFile().getResultAsJsonElement();
 		} catch (ParserConfigurationException | SAXException e) {
 			writeFailure(e);
 		}
 
-		JsonElement result = releasesWorker.transformResultsToJsonElement();
+		if(result == null) {
+			writeError("Cannot parse the file from the given url:" + url);
+			return;
+		}
 
 		writeAnswer(resp, result);
 	}

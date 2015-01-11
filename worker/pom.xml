@@ -27,6 +27,11 @@
           <artifactId>amqp-client</artifactId>
           <version>3.4.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.quartz-scheduler</groupId>
+            <artifactId>quartz</artifactId>
+            <version>2.1.5</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -45,6 +50,10 @@
                         <program>
                             <mainClass>ebs.discogs.workers.LocalDataMastersWorker</mainClass>
                             <name>localDataMastersWorker</name>
+                        </program>
+                        <program>
+                            <mainClass>ebs.discogs.schedulers.MastersScheduler</mainClass>
+                            <name>mastersScheduler</name>
                         </program>
                     </programs>
                 </configuration>
