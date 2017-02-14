@@ -11,7 +11,7 @@
     <script type="text/javascript">
         function drawVisualization() {
 
-            $.getJSON("./data/masters.json", function (json) {
+            $.getJSON("./data?", function (json) {
                 var data = google.visualization.arrayToDataTable(json);
 
                 var ac = new google.visualization.AreaChart(document.getElementById('visualization'));
