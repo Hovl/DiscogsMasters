@@ -18,7 +18,7 @@ import java.io.IOException;
  * Time: 23:32
  * Copyright (c) 2014
  */
-public class PingServlet extends BasicJSONServlet {
+public class GetLatestMastersFileUrlServlet extends BasicJSONServlet {
 	@Override
 	protected void handleRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		JsonObject result = (JsonObject) writeOk();
