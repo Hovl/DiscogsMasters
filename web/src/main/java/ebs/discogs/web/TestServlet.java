@@ -1,6 +1,7 @@
 package ebs.discogs.web;
 
 import com.google.gson.JsonElement;
+import ebs.discogs.html.HTMLDataMastersParser;
 import ebs.discogs.xml.MastersParser;
 import ebs.web.BasicJSONServlet;
 import org.xml.sax.SAXException;
@@ -25,7 +26,7 @@ public class TestServlet extends BasicJSONServlet {
 		String url = getParameterAsString(req, "url");
 		if(url == null) {
 			writeError("No 'url' parameter");
-			return;
+			url = HTMLDataMastersParser.getLatestMastersXMLURL();
 		}
 
 		JsonElement result = null;
