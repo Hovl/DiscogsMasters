@@ -1,4 +1,6 @@
 $(document).ready(function() {
+
+
     $('form[name=parseForm]').submit(function(e){
         e.preventDefault();
         $.ajax({

@@ -11,7 +11,7 @@ import com.google.gson.JsonObject;
  * Copyright (c) 2014
  */
 public class JSONWorker {
-	protected static Gson gson = new Gson();
+	private static Gson gson = new Gson();
 
 	public static JsonObject getErrorResult(String description) {
 		JsonObject result = new JsonObject();
