@@ -18,8 +18,8 @@ import java.util.logging.Logger;
  * Time: 14:18
  * Copyright (c) 2014
  */
-public class TestServlet extends BasicJSONServlet {
-	private static Logger logger = Logger.getLogger(TestServlet.class.getName());
+public class ReadMastersServlet extends BasicJSONServlet {
+	private static Logger logger = Logger.getLogger(ReadMastersServlet.class.getName());
 
 	@Override
 	protected void handleRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
