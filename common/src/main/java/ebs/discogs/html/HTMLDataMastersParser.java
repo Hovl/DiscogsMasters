@@ -23,13 +23,13 @@ import java.util.regex.Pattern;
 public class HTMLDataMastersParser {
 	private static Logger logger = Logger.getLogger(HTMLDataMastersParser.class.getName());
 
-	public static final String DUMP_HTTP_URL = "http://www.discogs.com/data/";
-	public static final String HREF_PATH = "html body div.list table tbody tr td.n a[href]";
-	public static final Pattern MASTERS_FILE_NAME_PATTERN =
-			Pattern.compile("discogs_(\\d\\d\\d\\d\\d\\d\\d\\d)_masters\\.xml\\.gz");
-	public static final SimpleDateFormat YYYYMMDD = new SimpleDateFormat("yyyyMMdd");
+	private static final String DUMP_HTTP_URL = "http://discogs-data.s3-us-west-2.amazonaws.com/";
+	private static final String HREF_PATH = "ListBucketResult Contents Key";
+	private static final Pattern MASTERS_FILE_NAME_PATTERN =
+			Pattern.compile("data/discogs_(\\d\\d\\d\\d\\d\\d\\d\\d)_masters\\.xml\\.gz");
+	private static final SimpleDateFormat YYYYMMDD = new SimpleDateFormat("yyyyMMdd");
 
-	public static String getLatestMastersXMLURL(Date currentMastersDate) throws IOException {
+	public static String getLatestMastersXMLURL() throws IOException {
 		Connection connection = Jsoup.connect(DUMP_HTTP_URL);
 		connection.header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/537.36 (KHTML, " +
 				"like Gecko) Chrome/39.0.2171.95 Safari/537.36");
@@ -37,9 +37,9 @@ public class HTMLDataMastersParser {
 		Elements elements = document.select(HREF_PATH);
 
 		String latestURL = null;
-		Date latestDate = currentMastersDate;
+		Date latestDate = null;
 		for (Element element : elements) {
-			String url = element.attr("href");
+			String url = element.text();
 
 			Matcher matcher = MASTERS_FILE_NAME_PATTERN.matcher(url);
 			while (matcher.find()) {
@@ -48,7 +48,7 @@ public class HTMLDataMastersParser {
 				try {
 					Date date = YYYYMMDD.parse(dateSt);
 
-					if(latestDate == null || latestDate.compareTo(date) > 0) {
+					if(latestDate == null || latestDate.compareTo(date) < 0) {
 						latestDate = date;
 						latestURL = url;
 					}

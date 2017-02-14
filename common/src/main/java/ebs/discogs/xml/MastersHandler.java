@@ -24,7 +24,7 @@ public class MastersHandler extends DefaultHandler {
 
 	private ReleasesWorker releasesWorker;
 
-	public MastersHandler(ReleasesWorker releasesWorker) {
+	MastersHandler(ReleasesWorker releasesWorker) {
 		this.releasesWorker = releasesWorker;
 	}
 

@@ -19,7 +19,7 @@ public class LocalDataMastersWorker {
 	private static Logger logger = Logger.getLogger(LocalDataMastersWorker.class.getName());
 
 	public static void main(String args[]) throws Exception {
-		String latestMastersXMLURL = HTMLDataMastersParser.getLatestMastersXMLURL(null);
+		String latestMastersXMLURL = HTMLDataMastersParser.getLatestMastersXMLURL();
 		logger.info(latestMastersXMLURL);
 
 		new MastersParser(latestMastersXMLURL).parseGZipFile().saveToFile(DiscogsData.MASTERS_JSON);
