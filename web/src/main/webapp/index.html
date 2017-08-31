@@ -16,6 +16,8 @@
 
                 var ac = new google.visualization.AreaChart(document.getElementById('visualization'));
 
+                $('#loading').hide();
+
                 ac.draw(data, {
                     title: 'Yearly Releases by Genre',
                     isStacked: true,
@@ -24,6 +26,8 @@
                     vAxis: {title: "Releases"},
                     hAxis: {title: "Year"}
                 });
+            }).error(function() {
+                $('#loading').text("Can not load data file. Please, contact support.");
             });
         }
 
@@ -31,6 +35,9 @@
     </script>
 </head>
 <body style="font-family: Arial,serif;border: 0 none;width: 100%; height: 100%;">
+<div id="loading" style="width: auto; text-align: center;">
+    <p>Loading...</p>
+</div>
 <div id="visualization" style="width: 100%; height: 100%;"></div>
 </body>
 </html>
