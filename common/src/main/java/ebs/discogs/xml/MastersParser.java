@@ -55,10 +55,11 @@ public class MastersParser {
 	}
 
 	public MastersParser parseGZipFile() throws IOException, ParserConfigurationException, SAXException {
+		logger.info("Parsing url: " + url);
 		URL u = new URL(url);
 		HttpURLConnection urlConnection = (HttpURLConnection) u.openConnection();
-		urlConnection.setConnectTimeout(0);
-		urlConnection.setReadTimeout(0);
+		urlConnection.setConnectTimeout(600000);
+		urlConnection.setReadTimeout(600000);
 		urlConnection.setRequestMethod("GET");
 		urlConnection.setDoOutput(true);
 		urlConnection.setRequestProperty("User-Agent",

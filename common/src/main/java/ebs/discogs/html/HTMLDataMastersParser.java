@@ -26,7 +26,7 @@ public class HTMLDataMastersParser {
 	private static final String DUMP_HTTP_URL = "http://discogs-data.s3-us-west-2.amazonaws.com/";
 	private static final String HREF_PATH = "ListBucketResult Contents Key";
 	private static final Pattern MASTERS_FILE_NAME_PATTERN =
-			Pattern.compile("data/discogs_(\\d\\d\\d\\d\\d\\d\\d\\d)_masters\\.xml\\.gz");
+			Pattern.compile("data/\\d\\d\\d\\d/discogs_(\\d\\d\\d\\d\\d\\d\\d\\d)_masters\\.xml\\.gz");
 	private static final SimpleDateFormat YYYYMMDD = new SimpleDateFormat("yyyyMMdd");
 
 	public static String getLatestMastersXMLURL() throws IOException {
@@ -60,7 +60,7 @@ public class HTMLDataMastersParser {
 		}
 
 		if(latestURL == null) {
-			return null;
+			throw new IOException("Unable to find URL!");
 		} else {
 			logger.info("Latest masters file:" + latestURL);
 			return DUMP_HTTP_URL + latestURL;

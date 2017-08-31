@@ -1,15 +1,11 @@
 package ebs.discogs.web;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import ebs.discogs.html.HTMLDataMastersParser;
-import ebs.discogs.xml.MastersParser;
 import ebs.web.BasicJSONServlet;
-import org.xml.sax.SAXException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 
 /**

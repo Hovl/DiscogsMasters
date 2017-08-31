@@ -16,7 +16,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "web/target/discogs/WEB-INF/classes:web/target/discogs/WEB-INF/lib/*",
       "ebs.web.Boot"]
       d.volumes = ["/usr/local/discogs"]
-      d.vagrant_vagrantfile = "./Vagrantfile.proxy"
+#      d.has_ssh = true
+      d.vagrant_vagrantfile = "./Vagrantfile.dev"
     end
   end
 
