@@ -55,6 +55,7 @@ public class MastersParser {
 	}
 
 	public MastersParser parseGZipFile() throws IOException, ParserConfigurationException, SAXException {
+		logger.info("Parsing url: " + url);
 		URL u = new URL(url);
 		HttpURLConnection urlConnection = (HttpURLConnection) u.openConnection();
 		urlConnection.setConnectTimeout(0);
