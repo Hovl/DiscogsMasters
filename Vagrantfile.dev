@@ -1,10 +1,8 @@
+VAGRANTFILE_API_VERSION = "2"
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
-  config.vm.provision "docker"
+  config.vm.provision VAGRANT_DEFAULT_PROVIDER
 
-#  config.vm.ssh.username = "admin"
-#  config.vm.ssh.password = "password"
-
-  config.vm.network :private_network, ip: "192.168.1.45"
   config.vm.network :forwarded_port, guest: 8080, host: 8080
 end
