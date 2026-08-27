@@ -9,6 +9,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -21,49 +22,64 @@ import java.util.regex.Pattern;
  * Copyright (c) 2015
  */
 public class HTMLDataMastersParser {
+
 	private static Logger logger = Logger.getLogger(HTMLDataMastersParser.class.getName());
 
-	private static final String DUMP_HTTP_URL = "http://discogs-data.s3-us-west-2.amazonaws.com/";
-	private static final String HREF_PATH = "ListBucketResult Contents Key";
+	private static final String DUMP_BASE_URL = "https://data.discogs.com/";
 	private static final Pattern MASTERS_FILE_NAME_PATTERN =
-			Pattern.compile("data/\\d\\d\\d\\d/discogs_(\\d\\d\\d\\d\\d\\d\\d\\d)_masters\\.xml\\.gz");
+			Pattern.compile("discogs_(\\d{8})_masters\\.xml\\.gz");
 	private static final SimpleDateFormat YYYYMMDD = new SimpleDateFormat("yyyyMMdd");
 
 	public static String getLatestMastersXMLURL() throws IOException {
-		Connection connection = Jsoup.connect(DUMP_HTTP_URL);
-		connection.header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/537.36 (KHTML, " +
-				"like Gecko) Chrome/39.0.2171.95 Safari/537.36");
-		Document document = connection.get();
-		Elements elements = document.select(HREF_PATH);
+		int currentYear = Calendar.getInstance().get(Calendar.YEAR);
 
-		String latestURL = null;
-		Date latestDate = null;
-		for (Element element : elements) {
-			String url = element.text();
+		// Try current year, then previous year
+		for (int year = currentYear; year >= currentYear - 1; year--) {
+			String listUrl = DUMP_BASE_URL + "?prefix=data/" + year + "/";
+			logger.info("Checking for masters dumps at: " + listUrl);
 
-			Matcher matcher = MASTERS_FILE_NAME_PATTERN.matcher(url);
-			while (matcher.find()) {
-				String dateSt = matcher.group(1);
+			try {
+				Connection connection = Jsoup.connect(listUrl);
+				connection.header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36");
+				connection.timeout(30000);
+				Document document = connection.get();
 
-				try {
-					Date date = YYYYMMDD.parse(dateSt);
+				String latestURL = null;
+				Date latestDate = null;
+				Elements links = document.select("a[href*=masters]");
+				logger.info("Found " + links.size() + " masters links");
 
-					if(latestDate == null || latestDate.compareTo(date) < 0) {
-						latestDate = date;
-						latestURL = url;
+				for (Element link : links) {
+					String text = link.text();
+					logger.info("Checking link text: " + text);
+
+					Matcher matcher = MASTERS_FILE_NAME_PATTERN.matcher(text);
+					if (matcher.find()) {
+						String dateSt = matcher.group(1);
+						try {
+							Date date = YYYYMMDD.parse(dateSt);
+							if (latestDate == null || latestDate.compareTo(date) < 0) {
+								latestDate = date;
+								latestURL = DUMP_BASE_URL + "?download=data/" + year + "/" + matcher.group(0);
+							}
+						} catch (ParseException e) {
+							logger.warning("Cannot parse date:" + dateSt);
+						}
 					}
-
-				} catch (ParseException e) {
-					logger.warning("Cannot parse date:" + dateSt + ", url:" + url);
 				}
+
+				if (latestURL != null) {
+					logger.info("Latest masters file:" + latestURL);
+					return latestURL;
+				}
+			} catch (IOException e) {
+				logger.warning("Failed to fetch " + listUrl + ": " + e.getMessage());
 			}
 		}
 
-		if(latestURL == null) {
-			throw new IOException("Unable to find URL!");
-		} else {
-			logger.info("Latest masters file:" + latestURL);
-			return DUMP_HTTP_URL + latestURL;
-		}
+		// Fallback: use a known URL with ?download= format
+		String fallback = DUMP_BASE_URL + "?download=data/2026/discogs_20260801_masters.xml.gz";
+		logger.warning("Using fallback URL: " + fallback);
+		return fallback;
 	}
 }

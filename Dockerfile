@@ -10,12 +10,11 @@ COPY web/ web/
 COPY worker/ worker/
 RUN mvn package -pl common,web -am -DskipTests -q
 
-FROM eclipse-temurin:8-jre-alpine
+FROM eclipse-temurin:8-jre
 WORKDIR /app
-COPY --from=build /app/web/target/bin/ bin/
 COPY --from=build /app/web/target/repo/ repo/
+COPY --from=build /app/web/target/classes/ classes/
 COPY --from=build /app/web/src/main/webapp/ web/src/main/webapp/
-RUN chmod +x bin/discogs
 EXPOSE 8080
 ENV PORT=8080
-CMD ["sh", "bin/discogs"]
+CMD ["sh", "-c", "java -cp classes:$(find repo -name '*.jar' -o -name '*.war' | tr '\\n' ':') ebs.web.Boot"]
