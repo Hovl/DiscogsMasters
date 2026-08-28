@@ -17,4 +17,4 @@ COPY --from=build /app/web/target/classes/ classes/
 COPY --from=build /app/web/src/main/webapp/ web/src/main/webapp/
 EXPOSE 8080
 ENV PORT=8080
-CMD ["sh", "-c", "java -cp classes:$(find repo -name '*.jar' -o -name '*.war' | tr '\\n' ':') ebs.web.Boot"]
+CMD ["sh", "-c", "java -Xmx1500m -XX:MaxRAM=2g -cp classes:$(find repo -name '*.jar' -o -name '*.war' | tr '\\n' ':') ebs.web.Boot"]
