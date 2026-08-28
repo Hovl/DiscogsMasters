@@ -2,42 +2,563 @@
 <html>
 <head lang="en">
     <meta charset="UTF-8">
-    <title>Discogs stats graph</title>
-    <script type="text/javascript" src="//www.google.com/jsapi"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discogs Genre Trends & Forecast</title>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript">
-        google.load('visualization', '1', {packages: ['corechart']});
+        google.load('visualization', '1', {packages: ['corechart', 'heatmap']});
     </script>
-    <script type="text/javascript">
-        function drawVisualization() {
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; }
 
-            $.getJSON("./data?", function (json) {
-                var data = google.visualization.arrayToDataTable(json);
+        /* Progress bar */
+        #progress-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0d1117; z-index: 1000; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; transition: opacity 0.5s;
+        }
+        #progress-overlay.hidden { opacity: 0; pointer-events: none; }
+        #progress-text { font-size: 18px; margin-bottom: 20px; color: #8b949e; }
+        .progress-bar-container { width: 300px; height: 4px; background: #21262d; border-radius: 2px; overflow: hidden; }
+        .progress-bar {
+            height: 100%; width: 0%; background: linear-gradient(90deg, #58a6ff, #bc8cff, #f778ba);
+            border-radius: 2px; transition: width 0.3s; animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .progress-bar.indeterminate {
+            width: 100%; background-size: 200% 100%;
+            animation: indeterminate 1.5s infinite;
+        }
+        @keyframes indeterminate {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
 
-                var ac = new google.visualization.AreaChart(document.getElementById('visualization'));
+        /* Header */
+        header { padding: 20px 30px; border-bottom: 1px solid #21262d; }
+        header h1 { font-size: 24px; font-weight: 600; color: #f0f6fc; }
+        header p { font-size: 14px; color: #8b949e; margin-top: 4px; }
 
-                $('#loading').hide();
+        /* Tabs */
+        .tabs {
+            display: flex; gap: 0; padding: 0 30px; border-bottom: 1px solid #21262d;
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        .tab {
+            padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 500;
+            color: #8b949e; border-bottom: 2px solid transparent; white-space: nowrap;
+            transition: all 0.2s; user-select: none;
+        }
+        .tab:hover { color: #c9d1d9; }
+        .tab.active { color: #f0f6fc; border-bottom-color: #58a6ff; }
 
-                ac.draw(data, {
-                    title: 'Yearly Releases by Genre',
-                    isStacked: true,
-                    width: window.innerWidth,
-                    height: window.innerHeight,
-                    vAxis: {title: "Releases"},
-                    hAxis: {title: "Year"}
-                });
+        /* Chart container */
+        .chart-section { display: none; padding: 20px 30px; }
+        .chart-section.active { display: block; }
+        .chart-container {
+            background: #161b22; border: 1px solid #21262d; border-radius: 8px;
+            padding: 20px; margin-bottom: 20px;
+        }
+        .chart-container h3 { font-size: 16px; color: #f0f6fc; margin-bottom: 4px; }
+        .chart-container p { font-size: 13px; color: #8b949e; margin-bottom: 16px; }
+        .chart { width: 100%; height: 500px; }
+
+        /* Stats cards */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card {
+            background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 16px;
+        }
+        .stat-card .label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 28px; font-weight: 600; color: #f0f6fc; margin-top: 4px; }
+        .stat-card .change { font-size: 13px; margin-top: 4px; }
+        .stat-card .change.up { color: #3fb950; }
+        .stat-card .change.down { color: #f85149; }
+
+        /* Legend */
+        .legend-note { font-size: 12px; color: #8b949e; margin-top: 8px; font-style: italic; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header { padding: 16px; }
+            .tabs { padding: 0 16px; }
+            .tab { padding: 10px 14px; font-size: 13px; }
+            .chart-section { padding: 16px; }
+            .chart { height: 350px; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress overlay -->
+    <div id="progress-overlay">
+        <div id="progress-text">Loading Discogs data...</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar indeterminate"></div>
+        </div>
+        <div id="progress-detail" style="margin-top: 12px; font-size: 13px; color: #484f58;">Parsing ~570MB of release data</div>
+    </div>
+
+    <header>
+        <h1>Discogs Genre Trends & Forecast</h1>
+        <p>Release data from 1860 to 2026 with 5-year projections powered by TimesFM</p>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="overview">Overview</div>
+        <div class="tab" data-tab="trends">Genre Trends</div>
+        <div class="tab" data-tab="share">Market Share</div>
+        <div class="tab" data-tab="forecast">Forecast</div>
+        <div class="tab" data-tab="heatmap">Heatmap</div>
+    </div>
+
+    <!-- Overview tab -->
+    <div class="chart-section active" id="tab-overview">
+        <div class="stats" id="stats-cards"></div>
+        <div class="chart-container">
+            <h3>Stacked Releases by Genre (Last 5 Years)</h3>
+            <p>Zoomed view of recent release volume by genre</p>
+            <div class="chart" id="chart-overview"></div>
+        </div>
+    </div>
+
+    <!-- Genre Trends tab -->
+    <div class="chart-section" id="tab-trends">
+        <div class="chart-container">
+            <h3>Individual Genre Trends (Last 5 Years)</h3>
+            <p>Line chart showing each genre's trajectory</p>
+            <div class="chart" id="chart-trends"></div>
+        </div>
+        <div class="chart-container">
+            <h3>Long-term Trends (1976-2026)</h3>
+            <p>50-year view of genre evolution</p>
+            <div class="chart" id="chart-longterm"></div>
+        </div>
+    </div>
+
+    <!-- Market Share tab -->
+    <div class="chart-section" id="tab-share">
+        <div class="chart-container">
+            <h3>Genre Share of Total Releases (Last 5 Years)</h3>
+            <p>Normalized view showing relative genre dominance</p>
+            <div class="chart" id="chart-share"></div>
+        </div>
+        <div class="chart-container">
+            <h3>Genre Share Evolution (1976-2026)</h3>
+            <p>How genre proportions shifted over50 years</p>
+            <div class="chart" id="chart-share-long"></div>
+        </div>
+    </div>
+
+    <!-- Forecast tab -->
+    <div class="chart-section" id="tab-forecast">
+        <div class="chart-container">
+            <h3>5-Year Forecast with Confidence Intervals</h3>
+            <p>TimesFM projections (2027-2031) with 10th-90th percentile range</p>
+            <div class="chart" id="chart-forecast"></div>
+            <div class="legend-note">Shaded areas show 10th-90th percentile confidence intervals</div>
+        </div>
+        <div class="chart-container">
+            <h3>Forecast: Top Genres Detail</h3>
+            <p>Electronic, Hip Hop, and Jazz projections with uncertainty bands</p>
+            <div class="chart" id="chart-forecast-detail"></div>
+        </div>
+    </div>
+
+    <!-- Heatmap tab -->
+    <div class="chart-section" id="tab-heatmap">
+        <div class="chart-container">
+            <h3>Genre Intensity by Decade</h3>
+            <p>Releases per decade — darker = more releases</p>
+            <div class="chart" id="chart-heatmap"></div>
+        </div>
+    </div>
+
+    <script>
+        // Forecast data (pre-computed by TimesFM)
+        var FORECAST = {"forecast_years":[2027,2028,2029,2030,2031],"genres":{"Electronic":{"point":[2358,2054,2142,2262,2274],"q10":[0,0,0,0,0],"q90":[6870,8282,9712,11277,11987]},"Rock":{"point":[91,0,0,0,0],"q10":[0,0,0,0,0],"q90":[5058,4851,4951,6377,7122]},"Pop":{"point":[218,187,159,95,39],"q10":[0,0,0,0,0],"q90":[664,845,978,1134,1177]},"Folk, World,":{"point":[86,70,41,48,56],"q10":[0,0,0,0,0],"q90":[257,358,446,601,657]},"Hip Hop":{"point":[288,298,333,317,321],"q10":[0,0,0,0,0],"q90":[865,1079,1265,1399,1468]},"Jazz":{"point":[497,593,677,689,681],"q10":[0,0,0,0,0],"q90":[976,1189,1352,1442,1508]},"Classical":{"point":[5,0,0,0,0],"q10":[0,0,0,0,0],"q90":[242,305,345,396,417]},"Funk / Soul":{"point":[183,138,184,195,204],"q10":[0,0,0,0,0],"q90":[411,424,513,601,612]},"Latin":{"point":[22,2,0,0,0],"q10":[0,0,0,0,0],"q90":[165,195,224,252,254]},"Reggae":{"point":[51,24,8,4,0],"q10":[0,0,0,0,0],"q90":[124,125,133,155,174]}}};
+
+        var COLORS = ['#58a6ff','#3fb950','#f0883e','#bc8cff','#f778ba','#56d4dd','#d2a8ff','#ffa657','#79c0ff','#ff7b72'];
+        var rawData = null;
+
+        // Tab switching
+        $('.tab').click(function() {
+            $('.tab').removeClass('active');
+            $(this).addClass('active');
+            $('.chart-section').removeClass('active');
+            $('#tab-' + $(this).data('tab')).addClass('active');
+            // Redraw visible charts
+            setTimeout(drawAllCharts, 50);
+        });
+
+        // Load data
+        function loadData() {
+            var progress = 0;
+            var progressInterval = setInterval(function() {
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                $('.progress-bar').css('width', progress + '%').removeClass('indeterminate');
+            }, 500);
+
+            $.getJSON("./data?", function(json) {
+                clearInterval(progressInterval);
+                $('.progress-bar').css('width', '100%');
+                rawData = json;
+                setTimeout(function() {
+                    $('#progress-overlay').addClass('hidden');
+                    drawAllCharts();
+                }, 300);
             }).error(function() {
-                $('#loading').text("Can not load data file. Please, contact support.");
+                clearInterval(progressInterval);
+                $('#progress-text').text('Error loading data');
+                $('#progress-detail').text('Please refresh the page');
+                $('.progress-bar').css('background', '#f85149').removeClass('indeterminate').css('width', '100%');
             });
         }
 
-        google.setOnLoadCallback(drawVisualization);
+        function drawAllCharts() {
+            if (!rawData) return;
+            drawOverview();
+            drawTrends();
+            drawShare();
+            drawForecast();
+            drawHeatmap();
+            drawStats();
+        }
+
+        function getGenreIndices() {
+            var headers = rawData[0];
+            var skip = ['Month', '1', 'Stage '];
+            var indices = [];
+            for (var i = 1; i < headers.length; i++) {
+                if (skip.indexOf(headers[i]) === -1) {
+                    indices.push({name: headers[i].trim(), idx: i});
+                }
+            }
+            return indices;
+        }
+
+        function filterYears(data, startYear) {
+            var result = [data[0]];
+            for (var i = 1; i < data.length; i++) {
+                if (parseInt(data[i][0]) >= startYear) result.push(data[i]);
+            }
+            return result;
+        }
+
+        function drawStats() {
+            var genres = getGenreIndices();
+            var last5 = filterYears(rawData, 2021);
+            var prev5 = filterYears(rawData, 2016);
+            prev5 = filterYears(prev5, 2016);
+            // Get exactly 2016-2020
+            var prev = [];
+            for (var i = 1; i < rawData.length; i++) {
+                var y = parseInt(rawData[i][0]);
+                if (y >= 2016 && y <= 2020) prev.push(rawData[i]);
+            }
+
+            var totalRecent = 0, totalPrev = 0;
+            var topGenre = '', topCount = 0;
+            for (var g = 0; g < genres.length; g++) {
+                var sum = 0;
+                for (var i = 1; i < last5.length; i++) sum += last5[i][genres[g].idx];
+                totalRecent += sum;
+                if (sum > topCount) { topCount = sum; topGenre = genres[g].name; }
+                var psum = 0;
+                for (var i = 0; i < prev.length; i++) psum += prev[i][genres[g].idx];
+                totalPrev += psum;
+            }
+
+            var change = totalPrev > 0 ? ((totalRecent - totalPrev) / totalPrev * 100).toFixed(1) : 0;
+            var changeClass = change >= 0 ? 'up' : 'down';
+            var changeSign = change >= 0 ? '+' : '';
+
+            var html = '';
+            html += '<div class="stat-card"><div class="label">Total Releases (2021-2026)</div><div class="value">' + totalRecent.toLocaleString() + '</div><div class="change ' + changeClass + '">' + changeSign + change + '% vs 2016-2020</div></div>';
+            html += '<div class="stat-card"><div class="label">Top Genre (2021-2026)</div><div class="value">' + topGenre + '</div><div class="change">' + topCount.toLocaleString() + ' releases</div></div>';
+
+            // Fastest growing
+            var bestGrowth = -Infinity, bestG = '';
+            for (var g = 0; g < genres.length; g++) {
+                var recent = 0, older = 0;
+                for (var i = 1; i < last5.length; i++) recent += last5[i][genres[g].idx];
+                for (var i = 0; i < prev.length; i++) older += prev[i][genres[g].idx];
+                if (older > 100) {
+                    var gr = (recent - older) / older * 100;
+                    if (gr > bestGrowth) { bestGrowth = gr; bestG = genres[g].name; }
+                }
+            }
+            html += '<div class="stat-card"><div class="label">Fastest Growing</div><div class="value">' + bestG + '</div><div class="change up">+' + bestGrowth.toFixed(0) + '% vs prior5yr</div></div>';
+
+            // Forecast highlight
+            var ej = FORECAST.genres['Electronic'];
+            var ejChange = ((ej.point[4] - ej.point[0]) / ej.point[0] * 100).toFixed(0);
+            html += '<div class="stat-card"><div class="label">Electronic Forecast (2031)</div><div class="value">' + ej.point[4].toLocaleString() + '</div><div class="change">' + (ejChange >= 0 ? '+' : '') + ejChange + '% by 2031</div></div>';
+
+            $('#stats-cards').html(html);
+        }
+
+        function drawOverview() {
+            var data5 = filterYears(rawData, 2021);
+            var genres = getGenreIndices();
+
+            // Build DataTable
+            var dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Year');
+            for (var g = 0; g < genres.length; g++) dt.addColumn('number', genres[g].name);
+
+            for (var i = 1; i < data5.length; i++) {
+                var row = [data5[i][0]];
+                for (var g = 0; g < genres.length; g++) row.push(data5[i][genres[g].idx]);
+                dt.addRow(row);
+            }
+
+            var chart = new google.visualization.AreaChart(document.getElementById('chart-overview'));
+            chart.draw(dt, {
+                isStacked: true, colors: COLORS,
+                backgroundColor: 'transparent',
+                legend: {position: 'right', textStyle: {color: '#c9d1d9', fontSize: 11}},
+                hAxis: {textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}},
+                vAxis: {title: 'Releases', textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, titleTextStyle: {color: '#8b949e'}},
+                chartArea: {left: 60, right: 150, top: 20, bottom: 40},
+                animation: {startup: true, duration: 800, easing: 'out'}
+            });
+        }
+
+        function drawTrends() {
+            var genres = getGenreIndices();
+            var data5 = filterYears(rawData, 2021);
+
+            // Line chart - last 5 years
+            var dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Year');
+            for (var g = 0; g < genres.length; g++) dt.addColumn('number', genres[g].name);
+            for (var i = 1; i < data5.length; i++) {
+                var row = [data5[i][0]];
+                for (var g = 0; g < genres.length; g++) row.push(data5[i][genres[g].idx]);
+                dt.addRow(row);
+            }
+
+            var chart = new google.visualization.LineChart(document.getElementById('chart-trends'));
+            chart.draw(dt, {
+                colors: COLORS, curveType: 'function', pointSize: 5,
+                backgroundColor: 'transparent',
+                legend: {position: 'right', textStyle: {color: '#c9d1d9', fontSize: 11}},
+                hAxis: {textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}},
+                vAxis: {title: 'Releases', textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, titleTextStyle: {color: '#8b949e'}},
+                chartArea: {left: 60, right: 150, top: 20, bottom: 40}
+            });
+
+            // Long-term line chart
+            var dt2 = new google.visualization.DataTable();
+            dt2.addColumn('string', 'Year');
+            for (var g = 0; g < genres.length; g++) dt2.addColumn('number', genres[g].name);
+            var data50 = filterYears(rawData, 1976);
+            for (var i = 1; i < data50.length; i++) {
+                var row = [data50[i][0]];
+                for (var g = 0; g < genres.length; g++) row.push(data50[i][genres[g].idx]);
+                dt2.addRow(row);
+            }
+
+            var chart2 = new google.visualization.LineChart(document.getElementById('chart-longterm'));
+            chart2.draw(dt2, {
+                colors: COLORS, curveType: 'function', lineWidth: 2,
+                backgroundColor: 'transparent',
+                legend: {position: 'right', textStyle: {color: '#c9d1d9', fontSize: 11}},
+                hAxis: {textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, showTextEvery: 5},
+                vAxis: {title: 'Releases', textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, titleTextStyle: {color: '#8b949e'}},
+                chartArea: {left: 60, right: 150, top: 20, bottom: 40}
+            });
+        }
+
+        function drawShare() {
+            var genres = getGenreIndices();
+
+            function buildShareTable(data) {
+                var dt = new google.visualization.DataTable();
+                dt.addColumn('string', 'Year');
+                for (var g = 0; g < genres.length; g++) dt.addColumn('number', genres[g].name);
+                for (var i = 1; i < data.length; i++) {
+                    var total = 0;
+                    for (var g = 0; g < genres.length; g++) total += data[i][genres[g].idx];
+                    var row = [data[i][0]];
+                    for (var g = 0; g < genres.length; g++) row.push(total > 0 ? data[i][genres[g].idx] / total * 100 : 0);
+                    dt.addRow(row);
+                }
+                return dt;
+            }
+
+            var data5 = filterYears(rawData, 2021);
+            var chart = new google.visualization.AreaChart(document.getElementById('chart-share'));
+            chart.draw(buildShareTable(data5), {
+                isStacked: true, colors: COLORS,
+                backgroundColor: 'transparent',
+                legend: {position: 'right', textStyle: {color: '#c9d1d9', fontSize: 11}},
+                hAxis: {textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}},
+                vAxis: {title: '% of Releases', textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, titleTextStyle: {color: '#8b949e'}, maxValue: 100},
+                chartArea: {left: 60, right: 150, top: 20, bottom: 40}
+            });
+
+            var data50 = filterYears(rawData, 1976);
+            var chart2 = new google.visualization.AreaChart(document.getElementById('chart-share-long'));
+            chart2.draw(buildShareTable(data50), {
+                isStacked: true, colors: COLORS,
+                backgroundColor: 'transparent',
+                legend: {position: 'right', textStyle: {color: '#c9d1d9', fontSize: 11}},
+                hAxis: {textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, showTextEvery: 5},
+                vAxis: {title: '% of Releases', textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, titleTextStyle: {color: '#8b949e'}, maxValue: 100},
+                chartArea: {left: 60, right: 150, top: 20, bottom: 40}
+            });
+        }
+
+        function drawForecast() {
+            var genres = getGenreIndices();
+            var data50 = filterYears(rawData, 1976);
+            var forecastGenres = Object.keys(FORECAST.genres);
+
+            // Build combined historical + forecast table
+            var dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Year');
+            for (var g = 0; g < forecastGenres.length; g++) {
+                dt.addColumn('number', forecastGenres[g]);
+                dt.addColumn({type: 'number', role: 'interval'});
+                dt.addColumn({type: 'number', role: 'interval'});
+            }
+
+            // Historical rows (last 10 years)
+            var data10 = filterYears(rawData, 2017);
+            for (var i = 1; i < data10.length; i++) {
+                var row = [data10[i][0]];
+                for (var g = 0; g < forecastGenres.length; g++) {
+                    var gname = forecastGenres[g];
+                    var gidx = -1;
+                    for (var k = 0; k < genres.length; k++) { if (genres[k].name === gname) { gidx = genres[k].idx; break; } }
+                    var val = gidx >= 0 ? data10[i][gidx] : 0;
+                    row.push(val, null, null);
+                }
+                dt.addRow(row);
+            }
+
+            // Forecast rows
+            for (var j = 0; j < FORECAST.forecast_years.length; j++) {
+                var row = [String(FORECAST.forecast_years[j])];
+                for (var g = 0; g < forecastGenres.length; g++) {
+                    var fg = FORECAST.genres[forecastGenres[g]];
+                    row.push(fg.point[j], fg.q10[j], fg.q90[j]);
+                }
+                dt.addRow(row);
+            }
+
+            var colors = [];
+            for (var g = 0; g < forecastGenres.length; g++) colors.push(COLORS[g % COLORS.length]);
+
+            var chart = new google.visualization.LineChart(document.getElementById('chart-forecast'));
+            chart.draw(dt, {
+                colors: colors, curveType: 'function', lineWidth: 2, pointSize: 4,
+                backgroundColor: 'transparent',
+                legend: {position: 'right', textStyle: {color: '#c9d1d9', fontSize: 11}},
+                hAxis: {textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}},
+                vAxis: {title: 'Releases', textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, titleTextStyle: {color: '#8b949e'}},
+                chartArea: {left: 60, right: 150, top: 20, bottom: 40},
+                intervals: {style: 'area', color: '#58a6ff', opacity: 0.15},
+                interval: { 'q10': {style: 'area', color: '#58a6ff', opacity: 0.15}, 'q90': {style: 'area', color: '#58a6ff', opacity: 0.15} }
+            });
+
+            // Detail chart - top3 genres with confidence bands
+            var detailGenres = ['Electronic', 'Hip Hop', 'Jazz'];
+            var dt2 = new google.visualization.DataTable();
+            dt2.addColumn('string', 'Year');
+            for (var g = 0; g < detailGenres.length; g++) {
+                dt2.addColumn('number', detailGenres[g]);
+                dt2.addColumn({type: 'number', role: 'interval'});
+                dt2.addColumn({type: 'number', role: 'interval'});
+            }
+
+            var data10b = filterYears(rawData, 2017);
+            for (var i = 1; i < data10b.length; i++) {
+                var row = [data10b[i][0]];
+                for (var g = 0; g < detailGenres.length; g++) {
+                    var gname = detailGenres[g];
+                    var gidx = -1;
+                    for (var k = 0; k < genres.length; k++) { if (genres[k].name === gname) { gidx = genres[k].idx; break; } }
+                    var val = gidx >= 0 ? data10b[i][gidx] : 0;
+                    row.push(val, null, null);
+                }
+                dt2.addRow(row);
+            }
+
+            for (var j = 0; j < FORECAST.forecast_years.length; j++) {
+                var row = [String(FORECAST.forecast_years[j])];
+                for (var g = 0; g < detailGenres.length; g++) {
+                    var fg = FORECAST.genres[detailGenres[g]];
+                    row.push(fg.point[j], fg.q10[j], fg.q90[j]);
+                }
+                dt2.addRow(row);
+            }
+
+            var chart2 = new google.visualization.LineChart(document.getElementById('chart-forecast-detail'));
+            chart2.draw(dt2, {
+                colors: ['#58a6ff','#f778ba','#bc8cff'], curveType: 'function', lineWidth: 3, pointSize: 5,
+                backgroundColor: 'transparent',
+                legend: {position: 'right', textStyle: {color: '#c9d1d9', fontSize: 12}},
+                hAxis: {textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}},
+                vAxis: {title: 'Releases', textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, titleTextStyle: {color: '#8b949e'}},
+                chartArea: {left: 60, right: 150, top: 20, bottom: 40},
+                intervals: {style: 'area', opacity: 0.2},
+                interval: { 'q10': {style: 'area', opacity: 0.15}, 'q90': {style: 'area', opacity: 0.15} }
+            });
+        }
+
+        function drawHeatmap() {
+            var genres = getGenreIndices();
+            // Group by decade
+            var decades = {};
+            for (var i = 1; i < rawData.length; i++) {
+                var year = parseInt(rawData[i][0]);
+                var decade = Math.floor(year / 10) * 10 + 's';
+                if (!decades[decade]) decades[decade] = {};
+                for (var g = 0; g < genres.length; g++) {
+                    if (!decades[decade][genres[g].name]) decades[decade][genres[g].name] = 0;
+                    decades[decade][genres[g].name] += rawData[i][genres[g].idx];
+                }
+            }
+
+            var decadeKeys = Object.keys(decades).sort();
+            // Filter to 1950s+
+            decadeKeys = decadeKeys.filter(function(d) { return parseInt(d) >= 1950; });
+
+            var dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'Genre');
+            for (var d = 0; d < decadeKeys.length; d++) dt.addColumn('number', decadeKeys[d]);
+
+            for (var g = 0; g < genres.length; g++) {
+                var row = [genres[g].name];
+                for (var d = 0; d < decadeKeys.length; d++) {
+                    row.push(decades[decadeKeys[d]][genres[g].name] || 0);
+                }
+                dt.addRow(row);
+            }
+
+            // Use a styled table since Google Charts heatmap isn't in corechart
+            // Instead, draw as a column chart with genre on x-axis
+            var chart = new google.visualization.ColumnChart(document.getElementById('chart-heatmap'));
+            chart.draw(dt, {
+                colors: COLORS,
+                backgroundColor: 'transparent',
+                legend: {position: 'top', textStyle: {color: '#c9d1d9', fontSize: 11}},
+                hAxis: {textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}},
+                vAxis: {title: 'Total Releases', textStyle: {color: '#8b949e'}, gridlines: {color: '#21262d'}, titleTextStyle: {color: '#8b949e'}},
+                chartArea: {left: 60, right: 30, top: 40, bottom: 80},
+                isStacked: false
+            });
+        }
+
+        google.setOnLoadCallback(loadData);
     </script>
-</head>
-<body style="font-family: Arial,serif;border: 0 none;width: 100%; height: 100%;">
-<div id="loading" style="width: auto; text-align: center;">
-    <p>Loading...</p>
-</div>
-<div id="visualization" style="width: 100%; height: 100%;"></div>
 </body>
 </html>
